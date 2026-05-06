@@ -267,24 +267,46 @@ def fetch_concentration(start_month, end_month):
         ]
 
     total_revenue = sum(as_float(row["TotalRevenue"]) for row in rows)
-    buckets = []
-    for size in (5, 10, 20):
-        bucket_revenue = sum(as_float(row["TotalRevenue"]) for row in rows if row["RevenueRank"] <= size)
-        buckets.append(
-            {
-                "Label": f"Top {size}",
-                "Revenue": round(bucket_revenue, 2),
-                "Share": round((bucket_revenue / total_revenue) * 100, 2) if total_revenue else 0,
-            }
+
+    def revenue_for_ranks(lo, hi):
+        return sum(
+            as_float(row["TotalRevenue"])
+            for row in rows
+            if lo <= as_float(row["RevenueRank"]) <= hi
         )
-    top_20 = buckets[-1]["Revenue"] if buckets else 0
-    buckets.append(
+
+    # Mutually exclusive bands (partition total revenue) for doughnut chart / summary.
+    top_5 = revenue_for_ranks(1, 5)
+    ranks_6_10 = revenue_for_ranks(6, 10)
+    ranks_11_20 = revenue_for_ranks(11, 20)
+    total_rounded = round(total_revenue, 2)
+    rev_top5 = round(top_5, 2)
+    rev_6_10 = round(ranks_6_10, 2)
+    rev_11_20 = round(ranks_11_20, 2)
+    rev_other = round(max(total_rounded - rev_top5 - rev_6_10 - rev_11_20, 0), 2)
+
+    buckets = [
+        {
+            "Label": "Top 5",
+            "Revenue": rev_top5,
+            "Share": round((rev_top5 / total_revenue) * 100, 2) if total_revenue else 0,
+        },
+        {
+            "Label": "Ranks 6–10",
+            "Revenue": rev_6_10,
+            "Share": round((rev_6_10 / total_revenue) * 100, 2) if total_revenue else 0,
+        },
+        {
+            "Label": "Ranks 11–20",
+            "Revenue": rev_11_20,
+            "Share": round((rev_11_20 / total_revenue) * 100, 2) if total_revenue else 0,
+        },
         {
             "Label": "All Other Customers",
-            "Revenue": round(total_revenue - top_20, 2),
-            "Share": round(((total_revenue - top_20) / total_revenue) * 100, 2) if total_revenue else 0,
-        }
-    )
+            "Revenue": rev_other,
+            "Share": round((rev_other / total_revenue) * 100, 2) if total_revenue else 0,
+        },
+    ]
     return {"totalRevenue": round(total_revenue, 2), "buckets": buckets}
 
 
