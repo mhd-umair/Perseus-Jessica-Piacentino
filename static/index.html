@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perseus Insights Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Perseus Equipment Analytics</p>
+        <h1>Perseus Insights Dashboard</h1>
+        <div class="insight-runner" aria-label="Dashboard section selector">
+          <button class="runner-tab active" data-view="customer" type="button">Customer Insights</button>
+          <button class="runner-tab" data-view="inventory" type="button">Inventory Insights</button>
+        </div>
+        <p class="subhead">
+          Posted invoice analytics for the selected month range.
+          Revenue includes finalized and archived invoices only.
+        </p>
+      </div>
+      <div class="hero-card">
+        <span>Default analysis window</span>
+        <strong>Apr 2017-Mar 2026</strong>
+        <small>Month-level filtering, no day-level selection</small>
+      </div>
+    </header>
+
+    <main class="page">
+      <div id="customerView">
+        <section class="toolbar panel">
+          <div>
+            <label for="rankBy">Rank top 20 customers by</label>
+            <select id="rankBy">
+              <option value="total_revenue">Total Revenue</option>
+              <option value="invoice_count">Invoice Count</option>
+              <option value="average_invoice_value">Average Invoice Value</option>
+              <option value="latest_year_revenue">Ending Month Revenue</option>
+              <option value="cagr">TTM CAGR %</option>
+              <option value="revenue_growth_dollars">Revenue Growth Dollars</option>
+            </select>
+          </div>
+          <p id="metricNote" class="note"></p>
+        </section>
+
+        <section class="kpi-grid" id="kpiGrid"></section>
+
+        <section class="grid two-column">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Leaderboard</p>
+                <h2>Top 20 Customers</h2>
+              </div>
+              <button id="refreshButton" type="button">Refresh</button>
+            </div>
+            <div class="timeline-control" aria-label="Leaderboard date range">
+              <div class="timeline-heading">
+                <div>
+                  <label>Timeline Adjuster</label>
+                  <strong id="rangeLabel">Apr 2017-Mar 2026</strong>
+                </div>
+                <span class="note">Defines the period used for top customer ranking and all sections below.</span>
+              </div>
+              <div class="range-sliders">
+                <input id="startMonthRange" type="range" min="0" max="107" value="0" />
+                <input id="endMonthRange" type="range" min="0" max="107" value="107" />
+              </div>
+              <div class="range-endpoints">
+                <span>Apr 2017</span>
+                <span>Mar 2026</span>
+              </div>
+            </div>
+            <div class="chart-box chart-box-tall">
+              <canvas id="leaderboardChart"></canvas>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Trend</p>
+                <h2>Monthly Revenue Trend</h2>
+              </div>
+            </div>
+            <p class="note">Click a leaderboard customer to focus this trend and open the drilldown.</p>
+            <div class="chart-box">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Details</p>
+              <h2>Leaderboard Table</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Customer</th>
+                  <th class="number">Total Revenue</th>
+                  <th class="number">Invoices</th>
+                  <th class="number">Avg Invoice</th>
+                  <th class="number">End Period Revenue</th>
+                  <th class="number">TTM CAGR</th>
+                  <th class="number">Growth $</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="grid two-column">
+          <article class="panel" id="customerDetailPanel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Drilldown</p>
+                <h2 id="detailTitle">Select a Customer</h2>
+              </div>
+            </div>
+            <div id="detailContent" class="empty-state">
+              Choose a customer from the chart or table to view annual metrics, invoice type mix,
+              last purchase date, and recent invoices.
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Customer Mix</p>
+                <h2>Revenue Concentration</h2>
+              </div>
+            </div>
+            <div class="chart-box small">
+              <canvas id="concentrationChart"></canvas>
+            </div>
+            <div id="concentrationSummary" class="summary-list"></div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Retention And Activity</p>
+              <h2>Declining Or Dormant Customers</h2>
+            </div>
+          </div>
+          <p class="note">
+            Customers shown here had posted revenue in the selected period and either no posted
+            revenue in the ending month or lower ending-month revenue than starting-month revenue.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th class="number">Total Revenue</th>
+                  <th class="number">Start Period Revenue</th>
+                  <th class="number">End Period Revenue</th>
+                  <th class="number">Growth $</th>
+                  <th>Last Purchase</th>
+                </tr>
+              </thead>
+              <tbody id="retentionTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div id="inventoryView" hidden>
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Parts Sales</p>
+              <h2>Core Parts Sales KPIs</h2>
+            </div>
+          </div>
+          <div class="timeline-control" aria-label="Inventory date range">
+            <div class="timeline-heading">
+              <div>
+                <label>Timeline Adjuster</label>
+                <strong id="inventoryRangeLabel">Apr 2017-Mar 2026</strong>
+              </div>
+              <span class="note">Defines the period used for parts sales KPIs and tables.</span>
+            </div>
+            <div class="range-sliders">
+              <input id="inventoryStartMonthRange" type="range" min="0" max="107" value="0" />
+              <input id="inventoryEndMonthRange" type="range" min="0" max="107" value="107" />
+            </div>
+            <div class="range-endpoints">
+              <span>Apr 2017</span>
+              <span>Mar 2026</span>
+            </div>
+          </div>
+          <p class="note">
+            These parts sales metrics follow the selected timeline and include finalized or archived
+            invoices only. Margin is estimated from `SalePart.AvgCost`.
+          </p>
+          <div class="kpi-grid parts-kpi-grid" id="partsKpiGrid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Parts Detail</p>
+              <h2>Interactive Parts Tables</h2>
+            </div>
+          </div>
+          <div class="toolbar table-toolbar">
+            <div>
+              <label for="partsTableSelect">Table view</label>
+              <select id="partsTableSelect">
+                <option value="topByRevenue">Top Parts By Revenue</option>
+                <option value="topByQuantity">Top Parts By Quantity Sold</option>
+                <option value="missingStockingPolicy">Parts Missing Stocking Policy</option>
+              </select>
+            </div>
+            <div>
+              <label for="partsTableSearch">Search parts</label>
+              <input id="partsTableSearch" type="search" placeholder="Part number or description..." />
+            </div>
+          </div>
+          <p class="note" id="partsTableNote"></p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-parts-sort="PartNo">Part</th>
+                  <th>Description</th>
+                  <th class="number" data-parts-sort="QuantitySold">Qty Sold</th>
+                  <th class="number" data-parts-sort="PartsRevenue">Revenue</th>
+                  <th class="number" data-parts-sort="EstimatedGrossMargin">Est. Margin</th>
+                  <th class="number" data-parts-sort="EstimatedMarginPercent">Margin %</th>
+                  <th class="number" data-parts-sort="InvoiceCount">Invoices</th>
+                  <th class="number" data-parts-sort="ActiveMonths">Active Months</th>
+                  <th data-parts-sort="LastSoldDate">Last Sold</th>
+                  <th>Stock Policy</th>
+                </tr>
+              </thead>
+              <tbody id="partsTableBody"></tbody>
+            </table>
+          </div>
+          <button id="partsTableToggle" type="button" class="table-toggle" hidden>Show more</button>
+        </section>
+
+        <section class="panel" id="partTrendPanel" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Part Drilldown</p>
+              <h2 id="partTrendTitle">Part Sales Trend</h2>
+            </div>
+          </div>
+          <p class="note" id="partTrendNote"></p>
+          <div class="chart-box">
+            <canvas id="partTrendChart"></canvas>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <aside class="chat-widget" id="chatWidget" aria-label="Customer question assistant">
+      <div class="chat-popover" id="chatPopover" hidden>Ask me anything!</div>
+      <button class="chat-launcher" id="chatLauncher" type="button" aria-label="Open customer assistant">
+        <span class="chat-icon" aria-hidden="true"></span>
+      </button>
+      <section class="chat-panel" id="chatPanel" hidden>
+        <div class="chat-header">
+          <div>
+            <strong>Customer Assistant</strong>
+            <span>SQL-guided answers from this dashboard</span>
+          </div>
+          <button id="chatClose" type="button" aria-label="Close chat">Close</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-message assistant">
+            Ask me about top customers, active customers, declining customers, revenue concentration,
+            or the selected customer.
+          </div>
+        </div>
+        <form class="chat-form" id="chatForm">
+          <input
+            id="chatInput"
+            type="text"
+            placeholder="Ask a customer question..."
+            autocomplete="off"
+          />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </aside>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

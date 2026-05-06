@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# Local SQLite copy; too large for GitHub (obtain per README / challenge materials).
+perseus_equipment_database.db
